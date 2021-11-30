@@ -9,9 +9,10 @@ Resources:
   StartExecutionLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/handlers/StartExecutionFunction
+      CodeUri: src/handlers/StartExecution
       Handler: index.handler
       Runtime: nodejs14.x
+      FunctionName: StartExecution
       Environment:
         Variables:
           STEP_FUNCTION_ARN: !GetAtt JobPollerStepFunction.Arn
@@ -34,7 +35,7 @@ Resources:
   CheckLegacyJobLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/handlers/CheckLegacyJobFunction
+      CodeUri: src/handlers/CheckLegacyJob
       Handler: index.handler
       FunctionName: CheckLegacyJobLambda
       Runtime: nodejs14.x
@@ -48,7 +49,7 @@ Resources:
   SubmitLegacyJobLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/handlers/SubmitLegacyJobFunction
+      CodeUri: src/handlers/SubmitLegacyJob
       Handler: index.handler
       Runtime: nodejs14.x
       FunctionName: SubmitLegacyJobLambda
