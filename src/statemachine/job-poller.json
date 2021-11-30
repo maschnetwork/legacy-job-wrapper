@@ -1,0 +1,116 @@
+{
+  "Comment": "Saves Job State and runs an external job and monitors the job until it completes.",
+  "StartAt": "Save Job Status",
+  "States": {
+    "Save Job Status": {
+      "Type": "Task",
+      "Resource": "${PutJobStatusArn}",
+      "ResultPath": "$",
+      "Parameters": {
+        "jobId.$": "$.jobId",
+        "status": "STARTED"
+      },
+      "Next": "Submit Legacy Job",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Submit Legacy Job": {
+      "Type": "Task",
+      "Resource": "${SubmitLegacyJobArn}",
+      "ResultPath": "$",
+      "Next": "Wait X Seconds",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Wait X Seconds": {
+      "Type": "Wait",
+      "Seconds": 10,
+      "Next": "Check Legacy Job Status"
+    },
+    "Check Legacy Job Status": {
+      "Type": "Task",
+      "Resource": "${CheckLegacyJobArn}",
+      "Next": "Job Complete?",
+      "InputPath": "$",
+      "ResultPath": "$",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ]
+    },
+    "Job Complete?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Not": {
+            "Variable": "$.status",
+            "StringEquals": "IN_PROGRESS"
+          },
+          "Next": "Update Job Status"
+        }
+      ],
+      "Default": "Wait X Seconds"
+    },
+    "Update Job Status": {
+      "Type": "Task",
+      "Resource": "${PutJobStatusArn}",
+      "ResultPath": "$",
+      "Parameters": {
+        "jobId.$": "$.jobId",
+        "status.$": "$.status"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Job success?"
+    },
+    "Job success?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.status",
+          "StringEquals": "SUCCESS",
+          "Next": "Job succeeded"
+        }
+      ],
+      "Default": "Job Failed"
+    },
+    "Job Failed": {
+      "Type": "Fail",
+      "Cause": "Job Failed",
+      "Error": "Job returned FAILED"
+    },
+    "Job succeeded": {
+      "Type": "Succeed"
+    }
+  }
+}

@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This application is a template to wrap a long running legacy batch application in a modern API. It reduces the load on the legacy system as well as providing a persistence layer for the job status in case the Legacy Job only provides ephemeral storage. In addition Step-Functions built-in Error Handling mechanisms (e.g.retry with back-off) can help you in encapsulating the interaction with the legacy system.
+
+Transform:
+- "AWS::Serverless-2016-10-31"
+
+Resources:
+  StartExecutionLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/StartExecutionFunction
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Environment:
+        Variables:
+          STEP_FUNCTION_ARN: !GetAtt JobPollerStepFunction.Arn
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Transform Job-Request and start Step-Function
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Method: post
+            Path: /jobs
+      Policies:
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt JobPollerStepFunction.Name
+        - CloudWatchPutMetricPolicy:
+            {}
+  CheckLegacyJobLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/CheckLegacyJobFunction
+      Handler: index.handler
+      FunctionName: CheckLegacyJobLambda
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Check for Job Status on Legacy System
+      Policies:
+        - AWSLambdaBasicExecutionRole
+  SubmitLegacyJobLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/SubmitLegacyJobFunction
+      Handler: index.handler
+      Runtime: nodejs14.x
+      FunctionName: SubmitLegacyJobLambda
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Submit Job on Legacy System
+      Policies:
+        - AWSLambdaBasicExecutionRole
+  PutJobStatusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/PutJobStatus
+      Handler: index.handler
+      Runtime: nodejs14.x
+      FunctionName: PutJobStatus
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref JobStatusTable
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      Description: Put Job Status in Dynamo DB
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref JobStatusTable
+  GetJobStatusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/handlers/GetJobStatus
+      Handler: index.handler
+      Runtime: nodejs14.x
+      FunctionName: GetJobStatus
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref JobStatusTable
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Method: get
+            Path: /jobs/{id}
+      Timeout: 100
+      Description: Get Job Status from DynamoDB Table
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref JobStatusTable
+  JobPollerStepFunction:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: src/statemachine/job-poller.json
+      DefinitionSubstitutions:
+        CheckLegacyJobArn: !GetAtt CheckLegacyJobLambda.Arn
+        SubmitLegacyJobArn: !GetAtt SubmitLegacyJobLambda.Arn
+        PutJobStatusArn: !GetAtt PutJobStatusLambda.Arn
+      Name: JobPoller
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SubmitLegacyJobLambda
+        - LambdaInvokePolicy:
+            FunctionName: !Ref CheckLegacyJobLambda
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PutJobStatusLambda
+  JobStatusTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: job-status
+
