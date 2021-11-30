@@ -8,7 +8,11 @@ layer for the job status in case the Legacy Job only provides ephemeral storage.
 
 ## Limitations and further improvements
 
-The actual implementation with the legacy application has to be implemented in [CheckLegacyJobFunction](./src/handlers/CheckLegacyJobFunction/index.js) and [SubmitLegacyJobFunction](./src/handlers/SubmitLegacyJobFunction/index.js).
+The actual implementation with the legacy application has to be implemented in [CheckLegacyJobFunction](./src/handlers/CheckLegacyJob/index.js) and [SubmitLegacyJobFunction](./src/handlers/SubmitLegacyJob/index.js).
+
+Further retries and failure logic needs to be implemented in the Step-Function according to the needs.
+
+HTTP-Polling was chosen to simplify the architecture (Alternatives: WebSockets, GraphQL Subscriptions)
 
 ## Information on Building and Deploying the Project
 
