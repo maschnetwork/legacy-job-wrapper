@@ -8,7 +8,7 @@ layer for the job status in case the Legacy Job only provides ephemeral storage.
 
 ## Limitations and further improvements
 
-The actual implementation with the legacy application has to be implemented in [CheckLegacyJobFunction](./src/CheckLegacyJobFunction/index.js) and [SubmitLegacyJobFunction](./src/SubmitLegacyJobFunction/index.js).
+The actual implementation with the legacy application has to be implemented in [CheckLegacyJobFunction](./src/handlers/CheckLegacyJobFunction/index.js) and [SubmitLegacyJobFunction](./src/handlers/SubmitLegacyJobFunction/index.js).
 
 ## Information on Building and Deploying the Project
 
