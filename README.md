@@ -10,6 +10,8 @@ layer for the job status in case the Legacy Job only provides ephemeral storage.
 
 The actual implementation with the legacy application has to be implemented in [CheckLegacyJobFunction](./src/handlers/CheckLegacyJob/index.js) and [SubmitLegacyJobFunction](./src/handlers/SubmitLegacyJob/index.js).
 
+Some of the Lambda Functions are only proxying calls to DynamoDB. This can be further optimized by using direct integrations with DynamoDB for both [Step-Functions](https://docs.aws.amazon.com/step-functions/latest/dg/connect-ddb.html) and [API-Gateway](https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/).
+
 Further retries and failure logic needs to be implemented in the Step-Function according to the needs.
 
 HTTP-Polling was chosen to simplify the architecture (Alternatives: WebSockets, GraphQL Subscriptions)
